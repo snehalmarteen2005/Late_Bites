@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Late Bites | Midnight Food Delivery</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  </head>
+  <body>
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="nav-left">
+        <div class="logo">
+          <img src="/logo.png" alt="Late Bites Logo">
+          <span>Late Bites</span>
+        </div>
+        <div class="address-selector" id="address-selector-btn">
+          <div class="address-icon"><i class="ri-map-pin-line"></i></div>
+          <div class="address-text">
+            <span class="address-type" id="header-address-type">Other</span>
+            <span class="address-detail" id="header-address-detail">Select Location</span>
+          </div>
+          <i class="ri-arrow-down-s-line"></i>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <!-- Optional Login btn can go here -->
+        <button id="cart-btn" class="cart-btn">
+          <i class="ri-shopping-cart-2-line"></i>
+          <span id="cart-count" class="cart-count">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Sticky Category Nav -->
+    <nav class="category-nav" id="category-nav">
+      <!-- Injected via JS -->
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <!-- Categories and products injected via JS -->
+    </main>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-sidebar" class="cart-sidebar">
+      <div class="cart-header">
+        <h2>Cart</h2>
+        <button id="close-cart" class="icon-btn"><i class="ri-close-line"></i></button>
+      </div>
+      
+      <!-- Delivery Address Banner inside Cart -->
+      <div class="cart-delivery-banner" id="cart-delivery-banner">
+        <div class="cdb-icon"><i class="ri-map-pin-fill"></i></div>
+        <div class="cdb-info">
+          <div class="cdb-title">Delivering to <span id="cart-address-type">Home</span></div>
+          <div class="cdb-desc" id="cart-address-desc">Please select an address</div>
+        </div>
+        <button class="text-btn" id="cart-change-address-btn">Change</button>
+      </div>
+
+      <div id="cart-items" class="cart-items">
+        <div class="empty-cart-msg">Your cart is empty. Let's add some late night bites!</div>
+      </div>
+
+      <div class="cart-footer">
+        <div class="bill-details">
+          <h3>Bill Details</h3>
+          <div class="bill-row">
+            <span>Item Total</span>
+            <span id="cart-item-total">₹0.00</span>
+          </div>
+          <div class="bill-row discount-row" id="cart-discount-row">
+            <span>Item Discount</span>
+            <span id="cart-discount">-₹0.00</span>
+          </div>
+          <hr class="bill-divider">
+          <div class="bill-row grand-total">
+            <span>To Pay</span>
+            <span id="cart-total-price">₹0.00</span>
+          </div>
+        </div>
+        
+        <div class="savings-badge" id="savings-badge">
+          You are saving ₹<span id="savings-amount">0</span> on this order!
+        </div>
+
+        <button class="checkout-btn" id="checkout-btn">
+          <span>Proceed to Pay</span>
+          <i class="ri-arrow-right-line"></i>
+        </button>
+      </div>
+    </div>
+    <div id="cart-overlay" class="overlay"></div>
+
+    <!-- Address Modal -->
+    <div id="address-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Save delivery address</h2>
+          <button id="close-address-modal" class="icon-btn"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body">
+          
+          <!-- View State: List Addresses -->
+          <div id="address-list-view">
+            <button class="btn-primary w-100 mb-4" id="add-new-address-btn">
+              <i class="ri-add-line"></i> Add New Address
+            </button>
+            <div id="saved-addresses-container">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- Edit/Add State: Form -->
+          <div id="address-form-view" class="hidden">
+            <div class="gps-btn-container mb-4">
+              <button class="btn-outline w-100" id="locate-me-btn">
+                <i class="ri-focus-3-line"></i> Use Current Location
+              </button>
+              <div id="gps-loading" class="hidden"><Spinner/> Locating...</div>
+            </div>
+
+            <form id="address-form">
+              <input type="hidden" id="addr-id">
+              <div class="form-group row">
+                <div class="col">
+                  <label>Name</label>
+                  <input type="text" id="addr-name" required placeholder="John Doe">
+                </div>
+                <div class="col">
+                  <label>Phone Number</label>
+                  <input type="tel" id="addr-phone" required placeholder="10-digit number" pattern="[0-9]{10}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Address Line</label>
+                <input type="text" id="addr-line" required placeholder="Flat No., Building Name, Street">
+              </div>
+              <div class="form-group">
+                <label>Landmark (Optional)</label>
+                <input type="text" id="addr-landmark" placeholder="Near Apollo Hospital">
+              </div>
+              <div class="form-group row">
+                <div class="col">
+                  <label>City</label>
+                  <input type="text" id="addr-city" required placeholder="City">
+                </div>
+                <div class="col">
+                  <label>Pincode</label>
+                  <input type="text" id="addr-pincode" required placeholder="Pincode" pattern="[0-9]{6}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Save As</label>
+                <div class="type-selectors">
+                  <label class="type-radio"><input type="radio" name="addr-type" value="Home" checked><span>Home</span></label>
+                  <label class="type-radio"><input type="radio" name="addr-type" value="Work"><span>Work</span></label>
+                  <label class="type-radio"><input type="radio" name="addr-type" value="Other"><span>Other</span></label>
+                </div>
+              </div>
+              <div class="form-actions mt-4">
+                <button type="button" class="btn-text" id="cancel-address-btn">Cancel</button>
+                <button type="submit" class="btn-primary">Save Address</button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div id="address-overlay" class="overlay"></div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="modal">
+      <div class="modal-content" style="text-align: center;">
+        <div class="modal-header">
+          <h2 style="margin: 0 auto;">Scan to Pay</h2>
+          <button id="close-payment-modal" class="icon-btn" style="position: absolute; right: 20px;"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-4" style="color: var(--text-sub);">Scan this PhonePe QR code to pay <strong id="payment-amount" style="color: #fff; font-size: 1.2rem;">₹0.00</strong></p>
+          <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="PhonePe QR" style="width: 200px; height: 200px; margin: 0 auto; background: white; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+          <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+            <label style="color: #fff;">UPI Reference ID (Required to verify payment)</label>
+            <input type="text" id="upi-ref" placeholder="Enter 12-digit UTR number" required>
+            <p id="upi-error" style="color: var(--danger); font-size: 0.8rem; display: none; margin-top: 5px;">Please provide a valid Reference ID.</p>
+          </div>
+          <p class="mb-4" style="color: var(--text-sub); font-size: 0.9rem;">After successful payment, click the button below to send your order details via SMS/WhatsApp so we can prepare it!</p>
+          <button class="btn-primary w-100" id="confirm-order-btn">
+            I Have Paid, Place Order
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="payment-overlay" class="overlay"></div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
