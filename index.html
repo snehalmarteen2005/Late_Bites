@@ -79,6 +79,10 @@
             <span>Item Discount</span>
             <span id="cart-discount">-₹0.00</span>
           </div>
+          <div class="bill-row" id="cart-delivery-row" style="display: none;">
+            <span>Delivery Fee</span>
+            <span id="cart-delivery-fee">₹30.00</span>
+          </div>
           <hr class="bill-divider">
           <div class="bill-row grand-total">
             <span>To Pay</span>
@@ -184,8 +188,8 @@
           <button id="close-payment-modal" class="icon-btn" style="position: absolute; right: 20px;"><i class="ri-close-line"></i></button>
         </div>
         <div class="modal-body">
-          <p class="mb-4" style="color: var(--text-sub);">Scan this PhonePe QR code to pay <strong id="payment-amount" style="color: #fff; font-size: 1.2rem;">₹0.00</strong></p>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="PhonePe QR" style="width: 200px; height: 200px; margin: 0 auto; background: white; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+          <p class="mb-4" style="color: var(--text-sub);">Scan this PhonePe/BharatPe QR code to pay <strong id="payment-amount" style="color: #fff; font-size: 1.2rem;">₹0.00</strong></p>
+          <img id="payment-qr-img" src="" alt="Payment QR" style="width: 250px; height: 250px; margin: 0 auto; background: white; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
           <div class="form-group" style="text-align: left; margin-bottom: 20px;">
             <label style="color: #fff;">UPI Reference ID (Required to verify payment)</label>
             <input type="text" id="upi-ref" placeholder="Enter 12-digit UTR number" required>

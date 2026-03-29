@@ -60,6 +60,8 @@ const cartTotalPrice = document.getElementById('cart-total-price');
 const cartItemTotal = document.getElementById('cart-item-total');
 const cartDiscount = document.getElementById('cart-discount');
 const cartDiscountRow = document.getElementById('cart-discount-row');
+const cartDeliveryRow = document.getElementById('cart-delivery-row');
+const cartDeliveryFee = document.getElementById('cart-delivery-fee');
 const savingsBadge = document.getElementById('savings-badge');
 const savingsAmount = document.getElementById('savings-amount');
 const checkoutBtn = document.getElementById('checkout-btn');
@@ -215,6 +217,7 @@ function updateCartUI() {
     cartItemsContainer.innerHTML = '<div class="empty-cart-msg">Your cart is empty. Let\'s add some late night bites!</div>';
     savingsBadge.classList.remove('active');
     cartDiscountRow.style.display = 'none';
+    cartDeliveryRow.style.display = 'none';
     cartItemTotal.textContent = '₹0.00';
     cartTotalPrice.textContent = '₹0.00';
     cartCount.textContent = '0';
@@ -244,6 +247,8 @@ function updateCartUI() {
   });
 
   const savings = totalOriginal - itemTotal;
+  const deliveryFee = 30;
+  const finalTotal = itemTotal + deliveryFee;
 
   cartItemTotal.textContent = `₹${totalOriginal.toFixed(2)}`;
   if (savings > 0) {
@@ -256,7 +261,11 @@ function updateCartUI() {
     savingsBadge.classList.remove('active');
   }
 
-  cartTotalPrice.textContent = `₹${itemTotal.toFixed(2)}`;
+  cartDeliveryRow.style.display = 'flex';
+  cartDeliveryFee.textContent = `₹${deliveryFee.toFixed(2)}`;
+  
+  cartTotalPrice.textContent = `₹${finalTotal.toFixed(2)}`;
+  cartTotalPrice.setAttribute('data-raw-total', finalTotal.toFixed(2));
   cartCount.textContent = count;
 
   document.querySelectorAll('.qty-btn').forEach(btn => {
@@ -291,6 +300,12 @@ function togglePaymentModal() {
     paymentOverlay.classList.remove('active');
   } else {
     paymentAmount.textContent = cartTotalPrice.textContent;
+    const rawTotal = cartTotalPrice.getAttribute('data-raw-total') || "0.00";
+    
+    // Dynamically generate the precise BharatPe UPI QR code embedded with the final total
+    const upiString = `upi://pay?pa=BHARATPE.8M0N1P1A7N83378@fbpe&pn=JAJJARA VIKOTORIYA&am=${rawTotal}&cu=INR`;
+    document.getElementById('payment-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiString)}`;
+    
     paymentModal.classList.add('open');
     paymentOverlay.classList.add('active');
   }
@@ -544,7 +559,8 @@ confirmOrderBtn.addEventListener('click', () => {
     orderText += `- ${item.quantity}x ${item.name} (₹${(item.price * item.quantity).toFixed(2)})\n`;
   });
   
-  orderText += `\n*Total Paid:* ${cartTotalPrice.textContent}\n`;
+  orderText += `\n*Delivery Fee:* ₹30.00\n`;
+  orderText += `*Total Paid:* ${cartTotalPrice.textContent}\n`;
   orderText += `*UPI Ref ID:* ${upiRefInput.value.trim()}\n`;
   if(savingsAmount.textContent !== "0") {
     orderText += `*(Saved ₹${savingsAmount.textContent}!)*\n`;
