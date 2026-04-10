@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Late Bites | Owner Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  </head>
+  <body>
+    <!-- Login Screen -->
+    <div id="login-screen" style="display: flex; height: 100vh; justify-content: center; align-items: center; background: var(--bg-color);">
+      <div style="background: var(--bg-card); padding: 40px; border-radius: 16px; border: 1px solid var(--border); text-align: center; width: 90%; max-width: 400px;">
+        <h2 style="margin-bottom: 20px; color: var(--text-main);">Owner Login</h2>
+        <input type="password" id="admin-pass" placeholder="Enter Password" style="margin-bottom: 20px;">
+        <button id="login-btn" class="btn-primary w-100">Login</button>
+      </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="dashboard-screen" style="display: none;">
+      <header class="navbar">
+        <div class="nav-left">
+          <div class="logo">
+            <span>Owner Dashboard</span>
+          </div>
+        </div>
+        <div class="nav-actions">
+          <a href="/" style="color: var(--primary); text-decoration: none; font-weight: 600;">View Store</a>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="category-section" style="margin-bottom: 30px;">
+          <h2 style="margin-bottom: 20px; color: var(--text-main);">Store Settings</h2>
+          <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 15px;">
+            <label style="margin: 0;">Delivery Fee (₹):</label>
+            <input type="number" id="delivery-fee-input" style="width: 100px; padding: 8px;">
+            <button id="save-fee-btn" class="btn-outline">Save Settings</button>
+          </div>
+        </section>
+
+        <section class="category-section">
+          <div class="section-header">
+            <h2 style="color: var(--text-main);">Menu Items</h2>
+            <button id="show-add-modal-btn" class="btn-primary"><i class="ri-add-line"></i> Add New Item</button>
+          </div>
+          
+          <!-- Table/List of items -->
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; text-align: left; border-collapse: collapse; color: var(--text-main);">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border);">
+                  <th style="padding: 10px;">ID</th>
+                  <th style="padding: 10px;">Image</th>
+                  <th style="padding: 10px;">Name</th>
+                  <th style="padding: 10px;">Category</th>
+                  <th style="padding: 10px;">Price (₹)</th>
+                  <th style="padding: 10px;">Status</th>
+                  <th style="padding: 10px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="menu-table-body">
+                <!-- JS Injected -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="add-item-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">Add New Item</h2>
+          <button id="close-item-modal" class="icon-btn"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="modal-body">
+          <form id="add-item-form">
+            <input type="hidden" id="item-id">
+            <div class="form-group mb-4">
+              <label>Item Name</label>
+              <input type="text" id="item-name" required placeholder="e.g. Cheese Burger">
+            </div>
+            <div class="form-group mb-4">
+              <label>Category</label>
+              <!-- Dropdown or input format for flexibility -->
+              <input type="text" id="item-category" required placeholder="e.g. Snacks" list="category-list">
+              <datalist id="category-list"></datalist>
+            </div>
+            <div class="row mb-4">
+              <div class="col">
+                <label>Price (₹)</label>
+                <input type="number" id="item-price" required>
+              </div>
+              <div class="col">
+                <label>Old Price (Optional - for discount tag)</label>
+                <input type="number" id="item-old-price">
+              </div>
+            </div>
+            <div class="form-group mb-4">
+              <label>Item Image</label>
+              <input type="file" id="item-image-file" accept="image/*" style="margin-bottom: 10px;">
+              <input type="url" id="item-image-url" placeholder="OR paste image URL here">
+            </div>
+            <button type="submit" class="btn-primary w-100" id="save-item-btn">Save Item</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div id="item-overlay" class="overlay"></div>
+
+    <script type="module" src="/src/admin.js"></script>
+  </body>
+</html>

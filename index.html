@@ -184,20 +184,35 @@
     <div id="payment-modal" class="modal">
       <div class="modal-content" style="text-align: center;">
         <div class="modal-header">
-          <h2 style="margin: 0 auto;">Scan to Pay</h2>
+          <h2 id="payment-modal-title" style="margin: 0 auto;">Checkout</h2>
           <button id="close-payment-modal" class="icon-btn" style="position: absolute; right: 20px;"><i class="ri-close-line"></i></button>
         </div>
         <div class="modal-body">
-          <p class="mb-4" style="color: var(--text-sub);">Scan this PhonePe/BharatPe QR code to pay <strong id="payment-amount" style="color: #fff; font-size: 1.2rem;">₹0.00</strong></p>
-          <img id="payment-qr-img" src="" alt="Payment QR" style="width: 250px; height: 250px; margin: 0 auto; background: white; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
-          <div class="form-group" style="text-align: left; margin-bottom: 20px;">
-            <label style="color: #fff;">UPI Reference ID (Required to verify payment)</label>
-            <input type="text" id="upi-ref" placeholder="Enter 12-digit UTR number" required>
-            <p id="upi-error" style="color: var(--danger); font-size: 0.8rem; display: none; margin-top: 5px;">Please provide a valid Reference ID.</p>
+          <div class="payment-methods" style="margin-bottom: 20px; display: flex; justify-content: center; gap: 20px; color: var(--text-main);">
+            <label style="cursor: pointer;"><input type="radio" name="pay-method" value="upi" checked> Scan & Pay (UPI)</label>
+            <label style="cursor: pointer;"><input type="radio" name="pay-method" value="cod"> Cash on Delivery (+₹10)</label>
           </div>
-          <p class="mb-4" style="color: var(--text-sub); font-size: 0.9rem;">After successful payment, click the button below to send your order details via SMS/WhatsApp so we can prepare it!</p>
-          <button class="btn-primary w-100" id="confirm-order-btn">
-            I Have Paid, Place Order
+          
+          <div id="upi-section">
+            <p class="mb-3" style="color: var(--text-sub);">Scan this QR code to pay <strong id="payment-amount" style="color: var(--text-main); font-size: 1.2rem;">₹0.00</strong></p>
+            <img id="payment-qr-img" src="/scanner.png" alt="Payment QR" style="width: 100%; max-width: 180px; max-height: 180px; object-fit: contain; margin: 0 auto; background: white; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+            <div class="form-group" style="text-align: left; margin-bottom: 15px;">
+              <label style="color: var(--text-main); margin-bottom: 6px; display: block; font-size: 0.9rem;">Upload Payment Screenshot / Receipt</label>
+              <input type="file" id="payment-ss" accept="image/*" style="width: 100%; padding: 8px; background: var(--bg-hover); color: var(--text-main); border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem;">
+              <p id="ss-error" style="color: var(--danger); font-size: 0.8rem; display: none; margin-top: 5px;">Please upload the payment screenshot to proceed.</p>
+            </div>
+          </div>
+          
+          <div id="cod-section" style="display: none; color: var(--text-sub); margin-bottom: 15px;">
+            <div style="background: rgba(212,175,55,0.1); color: #d4af37; padding: 10px 15px; border-radius: 8px; font-size: 0.9rem;">
+              <i class="ri-information-line"></i> Cash on Delivery. An extra ₹10 has been added for delivery.
+            </div>
+            <p class="mt-3">Total Amount to pay on delivery: <strong id="cod-amount" style="color: var(--text-main); font-size: 1.4rem;">₹0.00</strong></p>
+          </div>
+
+          <p class="mb-3" style="color: var(--text-sub); font-size: 0.85rem;">Click the button below to send your order and live location via WhatsApp!</p>
+          <button class="btn-primary w-100" id="confirm-order-btn" style="padding: 12px; font-size: 1rem;">
+            Place Order
           </button>
         </div>
       </div>
@@ -210,6 +225,10 @@
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay">
       <div class="spinner"></div>
+    </div>
+    
+    <div style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-sub);">
+      <a href="/admin.html" style="color: inherit; text-decoration: none; opacity: 0.5;">Owner Login</a>
     </div>
 
     <script type="module" src="/src/main.js"></script>

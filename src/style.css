@@ -1,14 +1,14 @@
 :root {
-  --bg-color: #000000;
-  --bg-card: #121212;
-  --bg-hover: #1e1e1e;
-  --text-main: #ffffff;
-  --text-sub: #93959f;
-  --primary: #fc8019; /* Swiggy orange */
-  --primary-hover: #e46d13;
-  --accent: #60b246; /* Green for veg/success */
-  --border: #282c3f;
-  --danger: #ff4c4c;
+  --bg-color: #ffffff;
+  --bg-card: #fafbfc;
+  --bg-hover: #f1f3f5;
+  --text-main: #2b2b2b;
+  --text-sub: #6c757d;
+  --primary: #d4af37; /* Metallic Gold */
+  --primary-hover: #b5952f;
+  --accent: #d4af37;
+  --border: #e9ecef;
+  --danger: #cf2c2c;
   --font-family: 'Outfit', sans-serif;
   --transition: all 0.2s ease-in-out;
 }
@@ -64,7 +64,7 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
   box-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 .nav-left { display: flex; align-items: center; gap: 2rem; }
-.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.4rem; color: #fff; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.4rem; color: var(--text-main); }
 .logo img { width: 36px; height: 36px; border-radius: 8px; }
 
 .address-selector {
@@ -80,7 +80,7 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
 .address-detail { font-size: 0.8rem; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .cart-btn {
-  background: transparent; border: none; color: #fff; font-size: 1.5rem;
+  background: transparent; border: none; color: var(--text-main); font-size: 1.5rem;
   position: relative; cursor: pointer; transition: var(--transition);
 }
 .cart-btn:hover { color: var(--primary); }
@@ -94,7 +94,7 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
 /* Category Nav */
 .category-nav {
   position: sticky; top: 70px; z-index: 99;
-  background: rgba(18, 18, 18, 0.95); backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
   padding: 15px 5%; display: flex; gap: 2rem; overflow-x: auto;
   border-bottom: 1px solid var(--border);
 }
@@ -104,7 +104,7 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
   white-space: nowrap; transition: var(--transition); padding-bottom: 5px;
   border-bottom: 2px solid transparent; cursor: pointer;
 }
-.cat-link:hover, .cat-link.active { color: #fff; border-color: var(--primary); }
+.cat-link:hover, .cat-link.active { color: var(--primary); border-color: var(--primary); }
 
 /* Main Content */
 .main-content { padding: 30px 5%; max-width: 1200px; margin: 0 auto; }
@@ -139,9 +139,9 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
 .product-info { display: flex; flex-direction: column; justify-content: center; flex: 1; }
 .product-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; line-height: 1.2; }
 .product-price-wrapper { display: flex; align-items: center; gap: 8px; }
-.product-price { font-size: 1.1rem; font-weight: 700; color: #fff; }
+.product-price { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
 .product-old-price { font-size: 0.85rem; color: var(--text-sub); text-decoration: line-through; }
-.discount-tag { color: var(--accent); font-size: 0.75rem; font-weight: 700; background: rgba(96, 178, 70, 0.1); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;}
+.discount-tag { color: #b5952f; font-size: 0.75rem; font-weight: 700; background: rgba(212, 175, 55, 0.15); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;}
 
 /* Modals & Overlays */
 .overlay {
@@ -170,14 +170,14 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
 .saved-address-card.selected { border-color: var(--primary); border-width: 2px; background: rgba(252, 128, 25, 0.05); }
 
 .sac-header { display: flex; justify-content: space-between; align-items: center; }
-.sac-type { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #fff; }
+.sac-type { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text-main); }
 .sac-type i { color: var(--primary); }
 .sac-actions { display: flex; gap: 10px; }
 .sac-actions button { background: none; border: none; color: var(--text-sub); font-size: 1.2rem; }
-.sac-actions button:hover { color: #fff; }
+.sac-actions button:hover { color: var(--primary); }
 
 .sac-details { font-size: 0.9rem; color: var(--text-sub); line-height: 1.4; }
-.sac-phone { font-size: 0.9rem; font-weight: 600; color: #ccc; }
+.sac-phone { font-size: 0.9rem; font-weight: 600; color: var(--text-sub); }
 
 .type-selectors { display: flex; gap: 10px; }
 .type-radio { flex: 1; cursor: pointer; }
@@ -213,7 +213,7 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
 .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
 .cart-item-info { flex: 1; }
 .cart-item-name { font-weight: 600; font-size: 0.95rem; display: block; margin-bottom: 4px; }
-.cart-item-price { color: #fff; font-size: 0.9rem; }
+.cart-item-price { color: var(--text-main); font-size: 0.9rem; }
 
 .qty-control {
   display: flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
@@ -229,9 +229,9 @@ label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--tex
 .discount-row { color: var(--accent); }
 .discount-row span:last-child { font-weight: 700; }
 .bill-divider { border: 0; border-top: 1px solid var(--border); margin: 15px 0; }
-.grand-total { color: #fff; font-weight: 800; font-size: 1.1rem; }
+.grand-total { color: var(--text-main); font-weight: 800; font-size: 1.1rem; }
 
-.savings-badge { background: rgba(96, 178, 70, 0.1); color: var(--accent); padding: 10px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.9rem; margin-top: 15px; margin-bottom: 15px; display: none; }
+.savings-badge { background: rgba(212, 175, 55, 0.15); color: #b5952f; padding: 10px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 0.9rem; margin-top: 15px; margin-bottom: 15px; display: none; }
 .savings-badge.active { display: block; }
 
 .checkout-btn {

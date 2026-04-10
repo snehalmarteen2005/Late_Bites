@@ -1,6 +1,11 @@
 import './style.css';
 
-const menuData = [
+// --- CONFIGURATION ---
+// IMPORTANT: Get your free API key from https://api.imgbb.com/ and paste it below
+const IMGBB_API_KEY = "2963a8dc073df07613d6801e375e5dc7";
+// ---------------------
+
+const defaultMenuData = [
   {
     category: "Drinks",
     items: [
@@ -39,6 +44,16 @@ const menuData = [
     ]
   }
 ];
+
+// Initialize Data Store
+let menuData = JSON.parse(localStorage.getItem('menuData'));
+if (!menuData) {
+  menuData = defaultMenuData;
+  localStorage.setItem('menuData', JSON.stringify(menuData));
+}
+
+let storeConfig = JSON.parse(localStorage.getItem('storeConfig')) || { deliveryFee: 30 };
+localStorage.setItem('storeConfig', JSON.stringify(storeConfig));
 
 // App State
 let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -85,6 +100,13 @@ const closePaymentModalBtn = document.getElementById('close-payment-modal');
 const confirmOrderBtn = document.getElementById('confirm-order-btn');
 const paymentAmount = document.getElementById('payment-amount');
 
+const upiSection = document.getElementById('upi-section');
+const codSection = document.getElementById('cod-section');
+const codAmount = document.getElementById('cod-amount');
+const payMethodRadios = document.getElementsByName('pay-method');
+const paymentSs = document.getElementById('payment-ss');
+const ssError = document.getElementById('ss-error');
+
 const addressListView = document.getElementById('address-list-view');
 const addressFormView = document.getElementById('address-form-view');
 const addNewAddressBtn = document.getElementById('add-new-address-btn');
@@ -107,8 +129,11 @@ function init() {
 function renderCategories() {
   categoryNav.innerHTML = '';
   menuData.forEach((cat, index) => {
+    const activeItems = cat.items.filter(item => !item.disabled);
+    if (activeItems.length === 0) return;
+
     const link = document.createElement('a');
-    link.className = `cat-link ${index === 0 ? 'active' : ''}`;
+    link.className = `cat-link ${categoryNav.children.length === 0 ? 'active' : ''}`;
     link.textContent = cat.category;
     link.href = `#cat-${index}`;
     link.onclick = (e) => {
@@ -122,10 +147,13 @@ function renderCategories() {
 function renderProducts() {
   mainContent.innerHTML = '';
   menuData.forEach((cat, index) => {
+    const activeItems = cat.items.filter(item => !item.disabled);
+    if (activeItems.length === 0) return;
+
     const section = document.createElement('section');
     section.className = 'category-section';
     section.id = `cat-${index}`;
-    
+
     // Header
     const header = document.createElement('div');
     header.className = 'section-header';
@@ -135,11 +163,11 @@ function renderProducts() {
     // Grid
     const grid = document.createElement('div');
     grid.className = 'product-grid';
-    
-    cat.items.forEach(product => {
+
+    activeItems.forEach(product => {
       const card = document.createElement('div');
       card.className = 'product-card';
-      
+
       const hasDiscount = product.originalPrice && product.originalPrice > product.price;
       const discountText = hasDiscount ? `<div class="discount-tag">Save ₹${product.originalPrice - product.price}</div>` : '';
       const oldPriceHtml = hasDiscount ? `<span class="product-old-price">₹${product.originalPrice.toFixed(2)}</span>` : '';
@@ -162,22 +190,26 @@ function renderProducts() {
       `;
       grid.appendChild(card);
     });
-    
+
     section.appendChild(grid);
     mainContent.appendChild(section);
   });
 
   document.querySelectorAll('.product-add-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = parseInt(e.currentTarget.getAttribute('data-id'));
-      addToCart(id);
-    });
+    btn.addEventListener('click', (e) => addToCart(e));
   });
 }
 
 // Cart Logic
-function addToCart(id) {
-  const product = flatProducts.find(p => p.id === id);
+function addToCart(e) {
+  const id = parseInt(e.currentTarget.getAttribute('data-id'));
+  let product = null;
+  menuData.forEach(cat => {
+    const found = cat.items.find(i => i.id === id);
+    if(found && !found.disabled) product = found;
+  });
+  
+  if (!product) return;
   const existingItem = cart.find(item => item.id === id);
 
   if (existingItem) {
@@ -185,11 +217,11 @@ function addToCart(id) {
   } else {
     cart.push({ ...product, quantity: 1 });
   }
-  
+
   saveCart();
   updateCartUI();
   showToast(`Added ${product.name} to cart!`);
-  
+
   cartBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 300 });
 }
 
@@ -247,7 +279,7 @@ function updateCartUI() {
   });
 
   const savings = totalOriginal - itemTotal;
-  const deliveryFee = 30;
+  const deliveryFee = storeConfig.deliveryFee;
   const finalTotal = itemTotal + deliveryFee;
 
   cartItemTotal.textContent = `₹${totalOriginal.toFixed(2)}`;
@@ -263,7 +295,7 @@ function updateCartUI() {
 
   cartDeliveryRow.style.display = 'flex';
   cartDeliveryFee.textContent = `₹${deliveryFee.toFixed(2)}`;
-  
+
   cartTotalPrice.textContent = `₹${finalTotal.toFixed(2)}`;
   cartTotalPrice.setAttribute('data-raw-total', finalTotal.toFixed(2));
   cartCount.textContent = count;
@@ -293,19 +325,38 @@ closeCartBtn.addEventListener('click', toggleCart);
 cartOverlay.addEventListener('click', toggleCart);
 
 // Payment Modal System
+payMethodRadios.forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    if (e.target.value === 'upi') {
+      upiSection.style.display = 'block';
+      codSection.style.display = 'none';
+      confirmOrderBtn.textContent = 'Place Order';
+    } else {
+      upiSection.style.display = 'none';
+      codSection.style.display = 'block';
+      confirmOrderBtn.textContent = 'Confirm COD Order';
+    }
+  });
+});
+
 function togglePaymentModal() {
   const isOpen = paymentModal.classList.contains('open');
   if (isOpen) {
     paymentModal.classList.remove('open');
     paymentOverlay.classList.remove('active');
   } else {
-    paymentAmount.textContent = cartTotalPrice.textContent;
-    const rawTotal = cartTotalPrice.getAttribute('data-raw-total') || "0.00";
-    
-    // Dynamically generate the precise BharatPe UPI QR code embedded with the final total
-    const upiString = `upi://pay?pa=BHARATPE.8M0N1P1A7N83378@fbpe&pn=JAJJARA VIKOTORIYA&am=${rawTotal}&cu=INR`;
-    document.getElementById('payment-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiString)}`;
-    
+    const rawTotal = parseFloat(cartTotalPrice.getAttribute('data-raw-total') || "0.00");
+    paymentAmount.textContent = `₹${rawTotal.toFixed(2)}`;
+    codAmount.textContent = `₹${(rawTotal + 10).toFixed(2)}`;
+
+    // Reset to UPI by default
+    document.querySelector('input[name="pay-method"][value="upi"]').checked = true;
+    upiSection.style.display = 'block';
+    codSection.style.display = 'none';
+    paymentSs.value = "";
+    ssError.style.display = 'none';
+    confirmOrderBtn.textContent = 'Place Order';
+
     paymentModal.classList.add('open');
     paymentOverlay.classList.add('active');
   }
@@ -382,14 +433,14 @@ function renderAddressList() {
     savedAddressesContainer.innerHTML = '<p style="text-align:center; color:gray; padding: 20px;">No saved addresses yet.</p>';
     return;
   }
-  
+
   addresses.forEach(addr => {
     const isSelected = addr.id === selectedAddressId;
     const card = document.createElement('div');
     card.className = `saved-address-card ${isSelected ? 'selected' : ''}`;
-    
+
     const icon = addr.type === 'Home' ? 'ri-home-4-fill' : (addr.type === 'Work' ? 'ri-building-4-fill' : 'ri-map-pin-fill');
-    
+
     card.innerHTML = `
       <div class="sac-header">
         <div class="sac-type"><i class="${icon}"></i> ${addr.type}</div>
@@ -400,7 +451,7 @@ function renderAddressList() {
       <div class="sac-details">${addr.line}${addr.landmark ? ', Near ' + addr.landmark : ''}, ${addr.city} - ${addr.pincode}</div>
       <div class="sac-phone">${addr.name} | ${addr.phone}</div>
     `;
-    
+
     card.addEventListener('click', (e) => {
       // Don't select if clicking delete
       if (e.target.closest('.delete-addr-btn')) return;
@@ -410,10 +461,10 @@ function renderAddressList() {
       toggleAddressModal();
       showToast('Delivery address updated');
     });
-    
+
     savedAddressesContainer.appendChild(card);
   });
-  
+
   document.querySelectorAll('.delete-addr-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -456,12 +507,12 @@ addressForm.addEventListener('submit', (e) => {
     pincode: document.getElementById('addr-pincode').value,
     type: document.querySelector('input[name="addr-type"]:checked').value
   };
-  
+
   addresses.push(newAddr);
   selectedAddressId = newAddr.id;
   localStorage.setItem('selectedAddressId', newAddr.id);
   saveAddresses();
-  
+
   resetAddressForm();
   updateAddressUI();
   toggleAddressModal();
@@ -474,27 +525,27 @@ locateMeBtn.addEventListener('click', () => {
     showToast('Geolocation is not supported by your browser');
     return;
   }
-  
+
   locateMeBtn.classList.add('hidden');
   gpsLoading.classList.remove('hidden');
-  
+
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       try {
         const { latitude, longitude } = position.coords;
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
         const data = await res.json();
-        
+
         if (data && data.address) {
           const addr = data.address;
           const street = addr.road || addr.suburb || addr.neighbourhood || addr.residential || '';
           const city = addr.city || addr.town || addr.county || '';
           const pincode = addr.postcode || '';
-          
+
           document.getElementById('addr-line').value = street;
           document.getElementById('addr-city').value = city;
           document.getElementById('addr-pincode').value = pincode;
-          
+
           showToast('Location fetched! Please verify.');
         } else {
           showToast('Could not resolve physical address.');
@@ -527,7 +578,7 @@ checkoutBtn.addEventListener('click', () => {
     showToast('Your cart is empty!');
     return;
   }
-  
+
   const addr = getSelectedAddress();
   if (!addr) {
     showToast('Please select a delivery address first!');
@@ -535,51 +586,115 @@ checkoutBtn.addEventListener('click', () => {
     toggleAddressModal(); // Open address modal
     return;
   }
-  
+
   // Transition from Cart to Payment Modal
   toggleCart();
   togglePaymentModal();
 });
 
-// Confirm Order after Fake Payment
-confirmOrderBtn.addEventListener('click', () => {
-  const upiRefInput = document.getElementById('upi-ref');
-  const upiError = document.getElementById('upi-error');
-  
-  if(upiRefInput.value.trim().length === 0) {
-    upiError.style.display = 'block';
-    return;
+// Confirm Order
+confirmOrderBtn.addEventListener('click', async () => {
+  const method = document.querySelector('input[name="pay-method"]:checked').value;
+
+  if (method === 'upi') {
+    if (!paymentSs.files || paymentSs.files.length === 0) {
+      ssError.style.display = 'block';
+      return;
+    }
+    ssError.style.display = 'none';
   }
-  upiError.style.display = 'none';
 
   const addr = getSelectedAddress();
-  
-  let orderText = 'Hello Late Bites! 🍔\n\n*New Paid Order:*\n';
-  cart.forEach(item => {
-    orderText += `- ${item.quantity}x ${item.name} (₹${(item.price * item.quantity).toFixed(2)})\n`;
-  });
-  
-  orderText += `\n*Delivery Fee:* ₹30.00\n`;
-  orderText += `*Total Paid:* ${cartTotalPrice.textContent}\n`;
-  orderText += `*UPI Ref ID:* ${upiRefInput.value.trim()}\n`;
-  if(savingsAmount.textContent !== "0") {
-    orderText += `*(Saved ₹${savingsAmount.textContent}!)*\n`;
-  }
-  
-  orderText += `\n*Delivery & Contact Details:*\nName: ${addr.name}\nPhone: ${addr.phone}\nAddress: ${addr.line}`;
-  if(addr.landmark) orderText += `, Near ${addr.landmark}`;
-  orderText += `\n${addr.city} - Pincode: ${addr.pincode}\nType: ${addr.type}`;
 
-  // Redirect to new number via WhatsApp using robust URL Encoding structure for full mobile compatibility
-  const whatsappLink = `https://api.whatsapp.com/send?phone=916304034196&text=${encodeURIComponent(orderText)}`;
-  window.open(whatsappLink, '_blank');
-  
-  // Clear cart and close modal
-  cart = [];
-  saveCart();
-  updateCartUI();
-  togglePaymentModal();
-  showToast('Order Sent! We will contact you shortly.');
+  const prevText = confirmOrderBtn.textContent;
+  confirmOrderBtn.disabled = true;
+
+  // 1. Upload Image (if UPI)
+  let receiptUrl = null;
+  if (method === 'upi' && paymentSs.files.length > 0) {
+    confirmOrderBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;border-width:2px;margin-right:8px;border-top-color:white;"></span> Uploading Screenshot...';
+    const file = paymentSs.files[0];
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+      if (uploadData.success) {
+        receiptUrl = uploadData.data.url;
+      } else {
+        console.warn("Upload failed:", uploadData);
+        alert(`Image Upload Failed!\nReason: ${uploadData.error.message}\n\nPlease insert a valid ImgBB API key at the top of src/main.js to make URLs work. Moving to WhatsApp without image URL.`);
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Network error uploading screenshot. Did you add your ImgBB API key?");
+    }
+  }
+
+  confirmOrderBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;border-width:2px;margin-right:8px;border-top-color:white;"></span> Fetching Live Location...';
+
+  const proceedOrder = (locStr) => {
+    let orderText = 'Hello Late Bites! 🍔\n\n*New Order Details:*\n';
+    cart.forEach(item => {
+      orderText += `- ${item.quantity}x ${item.name} (₹${(item.price * item.quantity).toFixed(2)})\n`;
+    });
+
+    const rawTotal = parseFloat(cartTotalPrice.getAttribute('data-raw-total') || "0");
+    if (method === 'cod') {
+      orderText += `\n*Payment Method:* Cash on Delivery 💵\n`;
+      orderText += `*Delivery Fee:* ₹40.00\n`;
+      orderText += `*Total to Pay:* ₹${(rawTotal + 10).toFixed(2)}\n`;
+    } else {
+      orderText += `\n*Payment Method:* Paid via UPI ✅\n`;
+      orderText += `*Delivery Fee:* ₹${storeConfig.deliveryFee.toFixed(2)}\n`;
+      orderText += `*Total Paid:* ₹${rawTotal.toFixed(2)}\n`;
+      if (receiptUrl) {
+        orderText += `*Payment Proof:* ${receiptUrl}\n`;
+      }
+    }
+
+    if (savingsAmount.textContent !== "0") {
+      orderText += `*(Saved ₹${savingsAmount.textContent}!)*\n`;
+    }
+
+    orderText += `\n*Delivery & Contact Details:*\nName: ${addr.name}\nPhone: ${addr.phone}\nAddress: ${addr.line}`;
+    if (addr.landmark) orderText += `, Near ${addr.landmark}`;
+    orderText += `\n${addr.city} - Pincode: ${addr.pincode}\nType: ${addr.type}\n`;
+
+    if (locStr) orderText += `\n*Live Location:* ${locStr}`;
+
+    const whatsappLink = `https://api.whatsapp.com/send?phone=916304034196&text=${encodeURIComponent(orderText)}`;
+    window.open(whatsappLink, '_blank');
+
+    // Clear cart and close modal
+    cart = [];
+    saveCart();
+    updateCartUI();
+    togglePaymentModal();
+    showToast('Order Sent to WhatsApp Successfully!');
+    confirmOrderBtn.textContent = prevText;
+    confirmOrderBtn.disabled = false;
+  };
+
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const mapsLink = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+        proceedOrder(mapsLink);
+      },
+      (err) => {
+        showToast("Could not get live location, placing order without it.");
+        proceedOrder(null);
+      },
+      { timeout: 7000, maximumAge: 0 }
+    );
+  } else {
+    proceedOrder(null);
+  }
 });
 
 // Run Init
