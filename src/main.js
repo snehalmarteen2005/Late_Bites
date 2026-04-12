@@ -668,7 +668,7 @@ confirmOrderBtn.addEventListener('click', async () => {
     if (locStr) orderText += `\n*Live Location:* ${locStr}`;
 
     const whatsappLink = `https://api.whatsapp.com/send?phone=916304034196&text=${encodeURIComponent(orderText)}`;
-    window.open(whatsappLink, '_blank');
+    window.location.href = whatsappLink;
 
     // Clear cart and close modal
     cart = [];
