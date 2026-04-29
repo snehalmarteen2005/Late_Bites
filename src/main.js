@@ -1,9 +1,8 @@
 import './style.css';
+import { placeOrder, getAllOrders, isStoreOpen, on, startPolling } from './store.js';
 
 // --- CONFIGURATION ---
-// IMPORTANT: Get your free API key from https://api.imgbb.com/ and paste it below
 const IMGBB_API_KEY = "2963a8dc073df07613d6801e375e5dc7";
-// ---------------------
 
 const defaultMenuData = [
   {
@@ -83,6 +82,22 @@ const checkoutBtn = document.getElementById('checkout-btn');
 const toastContainer = document.getElementById('toast-container');
 const loadingOverlay = document.getElementById('loading-overlay');
 
+// Store Closed
+const storeClosedOverlay = document.getElementById('store-closed-overlay');
+
+// Order History
+const ordersBtn = document.getElementById('orders-btn');
+const orderHistorySidebar = document.getElementById('order-history-sidebar');
+const closeOrdersBtn = document.getElementById('close-orders');
+const ordersOverlay = document.getElementById('orders-overlay');
+const orderHistoryList = document.getElementById('order-history-list');
+
+// Order Success Modal
+const orderSuccessModal = document.getElementById('order-success-modal');
+const orderSuccessOverlay = document.getElementById('order-success-overlay');
+const successOrderId = document.getElementById('success-order-id');
+const successCloseBtn = document.getElementById('success-close-btn');
+
 // Address Elements
 const addressSelectorBtn = document.getElementById('address-selector-btn');
 const headerAddressType = document.getElementById('header-address-type');
@@ -119,11 +134,98 @@ const gpsLoading = document.getElementById('gps-loading');
 // Initialize
 function init() {
   setTimeout(() => { loadingOverlay.style.opacity = '0'; setTimeout(() => loadingOverlay.style.display = 'none', 500); }, 500);
+  checkStoreStatus();
   renderCategories();
   renderProducts();
   updateCartUI();
   updateAddressUI();
+  setupOrderHistory();
+  setupStoreStatusListener();
+  startPolling(3000);
 }
+
+// ─── Store Status ───
+function checkStoreStatus() {
+  if (!isStoreOpen()) {
+    storeClosedOverlay.style.display = 'flex';
+    document.querySelectorAll('.product-add-btn').forEach(b => b.disabled = true);
+    if(checkoutBtn) checkoutBtn.disabled = true;
+  } else {
+    storeClosedOverlay.style.display = 'none';
+    document.querySelectorAll('.product-add-btn').forEach(b => b.disabled = false);
+    if(checkoutBtn) checkoutBtn.disabled = false;
+  }
+}
+
+function setupStoreStatusListener() {
+  on('STORE_STATUS_CHANGED', () => {
+    checkStoreStatus();
+    renderProducts();
+  });
+}
+
+// ─── Order History Sidebar ───
+function setupOrderHistory() {
+  ordersBtn.addEventListener('click', toggleOrderHistory);
+  closeOrdersBtn.addEventListener('click', toggleOrderHistory);
+  ordersOverlay.addEventListener('click', toggleOrderHistory);
+
+  on('ORDER_STATUS_CHANGED', () => {
+    if (orderHistorySidebar.classList.contains('open')) renderOrderHistory();
+  });
+}
+
+function toggleOrderHistory() {
+  const isOpen = orderHistorySidebar.classList.contains('open');
+  if (isOpen) {
+    orderHistorySidebar.classList.remove('open');
+    ordersOverlay.classList.remove('active');
+  } else {
+    renderOrderHistory();
+    orderHistorySidebar.classList.add('open');
+    ordersOverlay.classList.add('active');
+  }
+}
+
+function renderOrderHistory() {
+  const orders = getAllOrders();
+  if (orders.length === 0) {
+    orderHistoryList.innerHTML = '<div class="empty-orders-msg"><i class="ri-file-list-3-line"></i><p>No orders yet.<br>Your order history will appear here.</p></div>';
+    return;
+  }
+  orderHistoryList.innerHTML = orders.map(o => {
+    const date = new Date(o.createdAt);
+    const dateStr = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const statusClass = o.status.toLowerCase();
+    const itemsHtml = o.items.map(i => `<div class="oci-row"><span>${i.quantity}x ${i.name}</span><span>₹${(i.price * i.quantity).toFixed(2)}</span></div>`).join('');
+    return `<div class="order-card">
+      <div class="order-card-header">
+        <span class="order-card-id">${o.id}</span>
+        <span class="status-badge ${statusClass}"><span class="status-dot"></span>${o.status}</span>
+      </div>
+      <div class="order-card-date" style="margin-bottom:10px;font-size:0.82rem;color:var(--text-sub)">${dateStr} at ${timeStr}</div>
+      <div class="order-card-items">${itemsHtml}</div>
+      <div class="order-card-footer">
+        <span class="order-card-total">₹${o.totalAmount.toFixed(2)}</span>
+        <span class="order-card-method"><i class="ri-${o.paymentMethod === 'upi' ? 'qr-code-line' : 'money-dollar-circle-line'}"></i>${o.paymentMethod.toUpperCase()}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Order Success Modal ───
+function showOrderSuccess(orderId) {
+  successOrderId.textContent = orderId;
+  orderSuccessModal.classList.add('open');
+  orderSuccessOverlay.classList.add('active');
+}
+function closeOrderSuccess() {
+  orderSuccessModal.classList.remove('open');
+  orderSuccessOverlay.classList.remove('active');
+}
+if(successCloseBtn) successCloseBtn.addEventListener('click', closeOrderSuccess);
+if(orderSuccessOverlay) orderSuccessOverlay.addEventListener('click', closeOrderSuccess);
 
 // Render Core UI
 function renderCategories() {
@@ -574,28 +676,28 @@ locateMeBtn.addEventListener('click', () => {
 
 // Checkout Action
 checkoutBtn.addEventListener('click', () => {
+  if (!isStoreOpen()) {
+    showToast('Store is currently closed!');
+    return;
+  }
   if (cart.length === 0) {
     showToast('Your cart is empty!');
     return;
   }
-
   const addr = getSelectedAddress();
   if (!addr) {
     showToast('Please select a delivery address first!');
-    toggleCart(); // Close cart
-    toggleAddressModal(); // Open address modal
+    toggleCart();
+    toggleAddressModal();
     return;
   }
-
-  // Transition from Cart to Payment Modal
   toggleCart();
   togglePaymentModal();
 });
 
-// Confirm Order
+// Confirm Order — Places order in-app (no WhatsApp)
 confirmOrderBtn.addEventListener('click', async () => {
   const method = document.querySelector('input[name="pay-method"]:checked').value;
-
   if (method === 'upi') {
     if (!paymentSs.files || paymentSs.files.length === 0) {
       ssError.style.display = 'block';
@@ -603,97 +705,68 @@ confirmOrderBtn.addEventListener('click', async () => {
     }
     ssError.style.display = 'none';
   }
-
   const addr = getSelectedAddress();
-
   const prevText = confirmOrderBtn.textContent;
   confirmOrderBtn.disabled = true;
 
-  // 1. Upload Image (if UPI)
+  // Upload screenshot if UPI
   let receiptUrl = null;
   if (method === 'upi' && paymentSs.files.length > 0) {
-    confirmOrderBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;border-width:2px;margin-right:8px;border-top-color:white;"></span> Uploading Screenshot...';
+    confirmOrderBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;border-width:2px;margin-right:8px;border-top-color:white;"></span> Uploading...';
     const file = paymentSs.files[0];
     const formData = new FormData();
     formData.append('image', file);
-
     try {
-      const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-        method: 'POST',
-        body: formData
-      });
+      const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
       const uploadData = await uploadRes.json();
-      if (uploadData.success) {
-        receiptUrl = uploadData.data.url;
-      } else {
-        console.warn("Upload failed:", uploadData);
-        alert(`Image Upload Failed!\nReason: ${uploadData.error.message}\n\nPlease insert a valid ImgBB API key at the top of src/main.js to make URLs work. Moving to WhatsApp without image URL.`);
-      }
+      if (uploadData.success) receiptUrl = uploadData.data.url;
+      else console.warn('Upload failed:', uploadData);
     } catch (err) {
-      console.error("Upload error:", err);
-      alert("Network error uploading screenshot. Did you add your ImgBB API key?");
+      console.error('Upload error:', err);
     }
   }
 
-  confirmOrderBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;border-width:2px;margin-right:8px;border-top-color:white;"></span> Fetching Live Location...';
+  confirmOrderBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;border-width:2px;margin-right:8px;border-top-color:white;"></span> Placing Order...';
 
-  const proceedOrder = (locStr) => {
-    let orderText = 'Hello Late Bites! 🍔\n\n*New Order Details:*\n';
-    cart.forEach(item => {
-      orderText += `- ${item.quantity}x ${item.name} (₹${(item.price * item.quantity).toFixed(2)})\n`;
+  const finishOrder = (locStr) => {
+    const rawTotal = parseFloat(cartTotalPrice.getAttribute('data-raw-total') || '0');
+    const finalTotal = method === 'cod' ? rawTotal + 10 : rawTotal;
+
+    const order = placeOrder({
+      items: cart,
+      totalAmount: finalTotal,
+      deliveryFee: storeConfig.deliveryFee,
+      paymentMethod: method,
+      receiptUrl,
+      customer: {
+        name: addr.name,
+        phone: addr.phone,
+        address: addr.line,
+        landmark: addr.landmark || '',
+        city: addr.city,
+        pincode: addr.pincode,
+        type: addr.type
+      },
+      liveLocation: locStr
     });
 
-    const rawTotal = parseFloat(cartTotalPrice.getAttribute('data-raw-total') || "0");
-    if (method === 'cod') {
-      orderText += `\n*Payment Method:* Cash on Delivery 💵\n`;
-      orderText += `*Delivery Fee:* ₹40.00\n`;
-      orderText += `*Total to Pay:* ₹${(rawTotal + 10).toFixed(2)}\n`;
-    } else {
-      orderText += `\n*Payment Method:* Paid via UPI ✅\n`;
-      orderText += `*Delivery Fee:* ₹${storeConfig.deliveryFee.toFixed(2)}\n`;
-      orderText += `*Total Paid:* ₹${rawTotal.toFixed(2)}\n`;
-      if (receiptUrl) {
-        orderText += `*Payment Proof:* ${receiptUrl}\n`;
-      }
-    }
-
-    if (savingsAmount.textContent !== "0") {
-      orderText += `*(Saved ₹${savingsAmount.textContent}!)*\n`;
-    }
-
-    orderText += `\n*Delivery & Contact Details:*\nName: ${addr.name}\nPhone: ${addr.phone}\nAddress: ${addr.line}`;
-    if (addr.landmark) orderText += `, Near ${addr.landmark}`;
-    orderText += `\n${addr.city} - Pincode: ${addr.pincode}\nType: ${addr.type}\n`;
-
-    if (locStr) orderText += `\n*Live Location:* ${locStr}`;
-
-    const whatsappLink = `https://api.whatsapp.com/send?phone=916304034196&text=${encodeURIComponent(orderText)}`;
-    window.location.href = whatsappLink;
-
-    // Clear cart and close modal
     cart = [];
     saveCart();
     updateCartUI();
     togglePaymentModal();
-    showToast('Order Sent to WhatsApp Successfully!');
+    showOrderSuccess(order.id);
     confirmOrderBtn.textContent = prevText;
     confirmOrderBtn.disabled = false;
   };
 
-  if ("geolocation" in navigator) {
+  if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const mapsLink = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
-        proceedOrder(mapsLink);
-      },
-      (err) => {
-        showToast("Could not get live location, placing order without it.");
-        proceedOrder(null);
-      },
+      (pos) => finishOrder(`https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`),
+      () => { showToast('Could not get location, placing order without it.'); finishOrder(null); },
       { timeout: 7000, maximumAge: 0 }
     );
   } else {
-    proceedOrder(null);
+    finishOrder(null);
   }
 });
 

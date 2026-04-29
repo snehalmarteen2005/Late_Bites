@@ -36,18 +36,58 @@
       </header>
 
       <main class="main-content">
+        <!-- ═══ Store Settings ═══ -->
         <section class="category-section" style="margin-bottom: 30px;">
-          <h2 style="margin-bottom: 20px; color: var(--text-main);">Store Settings</h2>
-          <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 15px;">
-            <label style="margin: 0;">Delivery Fee (₹):</label>
-            <input type="number" id="delivery-fee-input" style="width: 100px; padding: 8px;">
-            <button id="save-fee-btn" class="btn-outline">Save Settings</button>
+          <h2 class="admin-section-title"><i class="ri-settings-3-line"></i> Store Settings</h2>
+          <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <!-- Store Open/Close Toggle -->
+            <div class="toggle-switch-wrapper">
+              <span class="toggle-label">Store Status:</span>
+              <label class="toggle-switch" id="store-toggle">
+                <input type="checkbox" id="store-toggle-input" checked>
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="store-status-text open" id="store-status-text">Open</span>
+            </div>
+            <div style="height: 30px; width: 1px; background: var(--border);"></div>
+            <!-- Delivery Fee -->
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <label style="margin: 0; white-space: nowrap;">Delivery Fee (₹):</label>
+              <input type="number" id="delivery-fee-input" style="width: 100px; padding: 8px;">
+              <button id="save-fee-btn" class="btn-outline">Save</button>
+            </div>
           </div>
         </section>
 
+        <!-- ═══ Orders Section ═══ -->
+        <section class="category-section" style="margin-bottom: 30px;" id="orders-section">
+          <h2 class="admin-section-title"><i class="ri-shopping-bag-3-line"></i> Orders</h2>
+          
+          <!-- Stats -->
+          <div class="admin-order-stats" id="order-stats">
+            <!-- JS injected -->
+          </div>
+
+          <!-- Filter Tabs -->
+          <div class="order-filter-tabs" id="order-filter-tabs">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="Pending">Pending</button>
+            <button class="filter-tab" data-filter="Accepted">Accepted</button>
+            <button class="filter-tab" data-filter="Preparing">Preparing</button>
+            <button class="filter-tab" data-filter="Delivered">Delivered</button>
+            <button class="filter-tab" data-filter="Cancelled">Cancelled</button>
+          </div>
+
+          <!-- Order Feed -->
+          <div id="admin-orders-feed">
+            <!-- JS Injected -->
+          </div>
+        </section>
+
+        <!-- ═══ Menu Items Section ═══ -->
         <section class="category-section">
           <div class="section-header">
-            <h2 style="color: var(--text-main);">Menu Items</h2>
+            <h2 class="admin-section-title"><i class="ri-restaurant-line"></i> Menu Items</h2>
             <button id="show-add-modal-btn" class="btn-primary"><i class="ri-add-line"></i> Add New Item</button>
           </div>
           
