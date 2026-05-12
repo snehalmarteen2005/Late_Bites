@@ -16,13 +16,13 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBnh2cwcxmuJ6Oc0ip1V7k_v2ZvRCIQFKc",
+  authDomain: "latebites-8c423.firebaseapp.com",
+  databaseURL: "https://latebites-8c423-default-rtdb.firebaseio.com",
+  projectId: "latebites-8c423",
+  storageBucket: "latebites-8c423.firebasestorage.app",
+  messagingSenderId: "341035515640",
+  appId: "1:341035515640:web:243834eda92beb7936050d"
 };
 
 const app = initializeApp(firebaseConfig);
