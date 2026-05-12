@@ -1,5 +1,5 @@
 import './style.css';
-import { placeOrder, getAllOrders, isStoreOpen, on, startPolling } from './store.js';
+import { initStore, placeOrder, getAllOrders, isStoreOpen, on, startPolling } from './store.js';
 
 // --- CONFIGURATION ---
 const IMGBB_API_KEY = "2963a8dc073df07613d6801e375e5dc7";
@@ -132,7 +132,8 @@ const locateMeBtn = document.getElementById('locate-me-btn');
 const gpsLoading = document.getElementById('gps-loading');
 
 // Initialize
-function init() {
+async function init() {
+  await initStore();
   setTimeout(() => { loadingOverlay.style.opacity = '0'; setTimeout(() => loadingOverlay.style.display = 'none', 500); }, 500);
   checkStoreStatus();
   renderCategories();
@@ -728,35 +729,42 @@ confirmOrderBtn.addEventListener('click', async () => {
 
   confirmOrderBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;display:inline-block;border-width:2px;margin-right:8px;border-top-color:white;"></span> Placing Order...';
 
-  const finishOrder = (locStr) => {
-    const rawTotal = parseFloat(cartTotalPrice.getAttribute('data-raw-total') || '0');
-    const finalTotal = method === 'cod' ? rawTotal + 10 : rawTotal;
+  const finishOrder = async (locStr) => {
+    try {
+      const rawTotal = parseFloat(cartTotalPrice.getAttribute('data-raw-total') || '0');
+      const finalTotal = method === 'cod' ? rawTotal + 10 : rawTotal;
 
-    const order = placeOrder({
-      items: cart,
-      totalAmount: finalTotal,
-      deliveryFee: storeConfig.deliveryFee,
-      paymentMethod: method,
-      receiptUrl,
-      customer: {
-        name: addr.name,
-        phone: addr.phone,
-        address: addr.line,
-        landmark: addr.landmark || '',
-        city: addr.city,
-        pincode: addr.pincode,
-        type: addr.type
-      },
-      liveLocation: locStr
-    });
+      const order = await placeOrder({
+        items: cart,
+        totalAmount: finalTotal,
+        deliveryFee: storeConfig.deliveryFee,
+        paymentMethod: method,
+        receiptUrl,
+        customer: {
+          name: addr.name,
+          phone: addr.phone,
+          address: addr.line,
+          landmark: addr.landmark || '',
+          city: addr.city,
+          pincode: addr.pincode,
+          type: addr.type
+        },
+        liveLocation: locStr
+      });
 
-    cart = [];
-    saveCart();
-    updateCartUI();
-    togglePaymentModal();
-    showOrderSuccess(order.id);
-    confirmOrderBtn.textContent = prevText;
-    confirmOrderBtn.disabled = false;
+      cart = [];
+      saveCart();
+      updateCartUI();
+      togglePaymentModal();
+      showOrderSuccess(order.id);
+      confirmOrderBtn.textContent = prevText;
+      confirmOrderBtn.disabled = false;
+    } catch (err) {
+      console.error('Order placement failed:', err);
+      showToast('Failed to place order. Please try again.');
+      confirmOrderBtn.textContent = prevText;
+      confirmOrderBtn.disabled = false;
+    }
   };
 
   if ('geolocation' in navigator) {

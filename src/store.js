@@ -1,68 +1,85 @@
 /**
  * store.js — Shared order & store-status module for Late Bites
- * Uses localStorage as persistent storage and BroadcastChannel for real-time cross-tab sync.
+ * Uses Firebase Realtime Database for cross-device real-time sync.
+ * Keeps a local in-memory cache for synchronous reads.
  */
 
-// ─── BroadcastChannel ───
-let channel = null;
-try {
-  channel = new BroadcastChannel('late-bites');
-} catch (e) {
-  console.warn('BroadcastChannel not supported, falling back to polling only.');
-}
+import { db } from './firebase.js';
+import { ref, set, onValue } from 'firebase/database';
 
+// ─── Event System ───
 const listeners = {};
 
-/**
- * Register a listener for a specific event type.
- * @param {'NEW_ORDER'|'ORDER_STATUS_CHANGED'|'STORE_STATUS_CHANGED'} type
- * @param {Function} callback
- */
 export function on(type, callback) {
   if (!listeners[type]) listeners[type] = [];
   listeners[type].push(callback);
 }
 
 function emit(type, data) {
-  if (listeners[type]) {
-    listeners[type].forEach(cb => cb(data));
-  }
+  if (listeners[type]) listeners[type].forEach(cb => cb(data));
 }
 
-// Listen for messages from other tabs
-if (channel) {
-  channel.onmessage = (event) => {
-    const { type, payload } = event.data;
-    emit(type, payload);
-  };
-}
+// ─── Local Cache (synced with Firebase in real-time) ───
+let ordersCache = [];
+let storeOpenCache = true;
+let counterCache = 0;
+let initialLoadDone = false;
 
-function broadcast(type, payload) {
-  if (channel) {
-    channel.postMessage({ type, payload });
-  }
+/**
+ * Initialize real-time listeners. Call once on page load.
+ * Returns a promise that resolves when initial data is loaded.
+ */
+export function initStore() {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const tryResolve = () => { if (!resolved) { resolved = true; resolve(); } };
+
+    // Listen for store status changes (real-time, cross-device)
+    onValue(ref(db, 'storeStatus'), (snap) => {
+      const val = snap.val();
+      storeOpenCache = val?.isOpen ?? true;
+      emit('STORE_STATUS_CHANGED', { isOpen: storeOpenCache });
+    });
+
+    // Listen for orders (real-time, cross-device)
+    onValue(ref(db, 'orders'), (snap) => {
+      const prevCount = ordersCache.length;
+      const val = snap.val();
+      ordersCache = val
+        ? Object.values(val).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        : [];
+
+      // Emit NEW_ORDER only after initial load (not for existing data)
+      if (initialLoadDone && ordersCache.length > prevCount) {
+        const newOrders = ordersCache.slice(0, ordersCache.length - prevCount);
+        newOrders.forEach(o => emit('NEW_ORDER', o));
+      }
+      emit('ORDERS_UPDATED', ordersCache);
+      initialLoadDone = true;
+      tryResolve();
+    });
+
+    // Listen for order counter
+    onValue(ref(db, 'orderCounter'), (snap) => {
+      counterCache = snap.val() || 0;
+    });
+
+    // Safety timeout — resolve even if Firebase is slow
+    setTimeout(tryResolve, 4000);
+  });
 }
 
 // ─── Orders ───
 
-function getOrders() {
-  return JSON.parse(localStorage.getItem('orders') || '[]');
-}
-
-function saveOrders(orders) {
-  localStorage.setItem('orders', JSON.stringify(orders));
-}
-
 /**
- * Place a new order. Returns the created order object.
+ * Place a new order. Writes to Firebase. Returns the order object.
  */
-export function placeOrder({ items, totalAmount, deliveryFee, paymentMethod, receiptUrl, customer, liveLocation }) {
-  const orders = getOrders();
-  const orderNum = (parseInt(localStorage.getItem('orderCounter') || '0', 10)) + 1;
-  localStorage.setItem('orderCounter', String(orderNum));
+export async function placeOrder({ items, totalAmount, deliveryFee, paymentMethod, receiptUrl, customer, liveLocation }) {
+  const newCount = counterCache + 1;
+  await set(ref(db, 'orderCounter'), newCount);
 
   const order = {
-    id: `ORD-${String(orderNum).padStart(4, '0')}`,
+    id: `ORD-${String(newCount).padStart(4, '0')}`,
     items: items.map(i => ({ name: i.name, price: i.price, quantity: i.quantity })),
     totalAmount,
     deliveryFee,
@@ -74,83 +91,35 @@ export function placeOrder({ items, totalAmount, deliveryFee, paymentMethod, rec
     createdAt: new Date().toISOString()
   };
 
-  orders.unshift(order); // newest first
-  saveOrders(orders);
-
-  // Broadcast to other tabs (admin)
-  broadcast('NEW_ORDER', order);
-
+  await set(ref(db, `orders/${order.id}`), order);
   return order;
 }
 
 /**
- * Get all orders, newest first.
+ * Get all orders from cache, newest first.
  */
 export function getAllOrders() {
-  return getOrders();
+  return ordersCache;
 }
 
 /**
- * Update an order's status.
+ * Update an order's status in Firebase.
  */
-export function updateOrderStatus(orderId, newStatus) {
-  const orders = getOrders();
-  const order = orders.find(o => o.id === orderId);
-  if (!order) return null;
-
-  order.status = newStatus;
-  saveOrders(orders);
-
-  broadcast('ORDER_STATUS_CHANGED', { orderId, status: newStatus });
-  return order;
+export async function updateOrderStatus(orderId, newStatus) {
+  await set(ref(db, `orders/${orderId}/status`), newStatus);
 }
 
 // ─── Store Status ───
 
-function getStoreStatusFromStorage() {
-  return JSON.parse(localStorage.getItem('storeStatus') || '{"isOpen": true}');
-}
-
-/**
- * Check if the store is currently open.
- */
 export function isStoreOpen() {
-  return getStoreStatusFromStorage().isOpen;
+  return storeOpenCache;
 }
 
-/**
- * Set the store open/closed state.
- */
-export function setStoreOpen(isOpen) {
-  const status = { isOpen };
-  localStorage.setItem('storeStatus', JSON.stringify(status));
-  broadcast('STORE_STATUS_CHANGED', { isOpen });
+export async function setStoreOpen(isOpen) {
+  await set(ref(db, 'storeStatus'), { isOpen });
 }
 
-// ─── Polling Fallback ───
-// For environments where BroadcastChannel isn't available, poll localStorage.
-let lastOrderCount = getOrders().length;
-let lastStoreOpen = isStoreOpen();
-
-export function startPolling(intervalMs = 3000) {
-  setInterval(() => {
-    // Check for new orders
-    const currentOrders = getOrders();
-    if (currentOrders.length > lastOrderCount) {
-      const newOrders = currentOrders.slice(0, currentOrders.length - lastOrderCount);
-      newOrders.forEach(order => emit('NEW_ORDER', order));
-    }
-    // Also check for status changes (re-render)
-    if (currentOrders.length !== lastOrderCount) {
-      emit('ORDERS_UPDATED', currentOrders);
-    }
-    lastOrderCount = currentOrders.length;
-
-    // Check store status
-    const currentStoreOpen = isStoreOpen();
-    if (currentStoreOpen !== lastStoreOpen) {
-      emit('STORE_STATUS_CHANGED', { isOpen: currentStoreOpen });
-      lastStoreOpen = currentStoreOpen;
-    }
-  }, intervalMs);
+// ─── Polling (no-op — Firebase handles real-time) ───
+export function startPolling() {
+  // No-op: Firebase onValue provides real-time updates across all devices
 }

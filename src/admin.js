@@ -1,5 +1,5 @@
 import './style.css';
-import { getAllOrders, updateOrderStatus, isStoreOpen, setStoreOpen, on, startPolling } from './store.js';
+import { initStore, getAllOrders, updateOrderStatus, isStoreOpen, setStoreOpen, on, startPolling } from './store.js';
 
 const IMGBB_API_KEY = "2963a8dc073df07613d6801e375e5dc7";
 
@@ -53,7 +53,8 @@ adminPass.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') loginBtn.click();
 });
 
-function initDashboard() {
+async function initDashboard() {
+  await initStore();
   deliveryFeeInput.value = storeConfig.deliveryFee;
   updateStoreToggleUI();
   renderTable();
@@ -98,8 +99,8 @@ function showNotifBanner(orderId) {
 }
 
 // ═══ Store Toggle ═══
-storeToggleInput.addEventListener('change', () => {
-  setStoreOpen(storeToggleInput.checked);
+storeToggleInput.addEventListener('change', async () => {
+  await setStoreOpen(storeToggleInput.checked);
   updateStoreToggleUI();
 });
 
@@ -218,10 +219,10 @@ function renderOrdersFeed() {
 
   // Attach status button listeners
   adminOrdersFeed.querySelectorAll('.aoc-status-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       const orderId = e.currentTarget.dataset.orderId;
       const newStatus = e.currentTarget.dataset.status;
-      updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(orderId, newStatus);
       renderOrdersFeed();
       renderOrderStats();
     });
